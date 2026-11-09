@@ -1,0 +1,9 @@
+{
+  "report_type": "qa_functional",
+  "total": 2,
+  "passed": 2,
+  "failed": 0,
+  "skipped": 0,
+  "pass_rate": 100.0,
+  "flaky_test_count": 0
+}

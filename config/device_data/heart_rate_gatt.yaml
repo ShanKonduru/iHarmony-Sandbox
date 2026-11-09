@@ -1,0 +1,17 @@
+# GATT profile of the lab's heart-rate monitor (lab-heart-rate): standard Bluetooth SIG services.
+services:
+  heart_rate:
+    uuid: "180d"
+    characteristics:
+      measurement: {uuid: "2a37", properties: [notify], type: bytes}   # flags + bpm + energy expended
+      location:    {uuid: "2a38", properties: [read], type: uint8}     # 1 = chest
+      control:     {uuid: "2a39", properties: [write], type: uint8}    # 1 = reset energy expended
+  battery:
+    uuid: "180f"
+    characteristics:
+      level: {uuid: "2a19", properties: [read, notify], type: uint8, unit: "%"}
+  device_info:
+    uuid: "180a"
+    characteristics:
+      model:    {uuid: "2a24", properties: [read], type: utf8}
+      firmware: {uuid: "2a26", properties: [read], type: utf8}

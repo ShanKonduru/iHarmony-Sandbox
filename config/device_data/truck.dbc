@@ -1,0 +1,103 @@
+VERSION "iharmony-truck-1"
+
+
+NS_ :
+
+BS_:
+
+BU_: VCU EBS TCU TESTER
+
+
+BO_ 2566852647 DriverDemand: 8 TESTER
+ SG_ accel_pedal : 0|8@1+ (0.4,0) [0|100] "%" VCU
+ SG_ brake_pedal : 8|8@1+ (0.4,0) [0|100] "%" VCU
+ SG_ payload : 16|8@1+ (0.2,0) [0|50] "t" VCU
+ SG_ road_grade : 24|16@1- (0.01,0) [-25|25] "%" VCU
+ SG_ ignition : 40|1@1+ (1,0) [0|1] "" VCU
+
+BO_ 2566852903 VcuConfig: 8 TESTER
+ SG_ speed_limit : 0|8@1+ (1,0) [30|120] "km/h" VCU
+
+BO_ 2365530151 VehicleStatus: 16 VCU
+ SG_ vehicle_speed : 0|16@1+ (0.01,0) [0|160] "km/h" TESTER
+ SG_ acceleration : 16|16@1- (0.001,0) [-15|15] "m/s2" TESTER
+ SG_ drive_state : 32|4@1+ (1,0) [0|15] "" TESTER
+ SG_ speed_limited : 36|1@1+ (1,0) [0|1] "" TESTER
+ SG_ ignition : 37|1@1+ (1,0) [0|1] "" TESTER
+ SG_ comm_fault : 38|1@1+ (1,0) [0|1] "" TESTER
+ SG_ tractive_force : 40|16@1- (0.01,0) [-300|300] "kN" TESTER
+ SG_ distance : 56|32@1+ (0.1,0) [0|400000000] "m" TESTER
+ SG_ gross_mass : 88|16@1+ (0.01,0) [0|60] "t" TESTER
+ SG_ speed_limit : 104|8@1+ (1,0) [0|255] "km/h" TESTER
+ SG_ alive_counter : 112|8@1+ (1,0) [0|255] "" TESTER
+ SG_ crc : 120|8@1+ (1,0) [0|255] "" TESTER
+
+BO_ 2365526027 BrakeDemand: 8 TESTER
+ SG_ decel_request : 0|16@1+ (0.001,0) [0|10] "m/s2" EBS
+ SG_ road_mu : 16|8@1+ (0.01,0) [0|1] "" EBS
+ SG_ vehicle_speed : 24|16@1+ (0.01,0) [0|160] "km/h" EBS
+
+BO_ 2365530123 BrakeStatus: 16 EBS
+ SG_ pressure_front : 0|16@1+ (0.1,0) [0|1200] "kPa" TESTER
+ SG_ pressure_rear1 : 16|16@1+ (0.1,0) [0|1200] "kPa" TESTER
+ SG_ pressure_rear2 : 32|16@1+ (0.1,0) [0|1200] "kPa" TESTER
+ SG_ achieved_decel : 48|16@1+ (0.001,0) [0|12] "m/s2" TESTER
+ SG_ brake_temp : 64|16@1+ (0.1,-50) [-50|900] "degC" TESTER
+ SG_ brake_state : 80|4@1+ (1,0) [0|15] "" TESTER
+ SG_ abs_active : 84|1@1+ (1,0) [0|1] "" TESTER
+ SG_ fade_warning : 85|1@1+ (1,0) [0|1] "" TESTER
+ SG_ sensor_fault : 86|1@1+ (1,0) [0|1] "" TESTER
+ SG_ alive_counter : 112|8@1+ (1,0) [0|255] "" TESTER
+ SG_ crc : 120|8@1+ (1,0) [0|255] "" TESTER
+
+BO_ 2566852611 TransInput: 8 TESTER
+ SG_ vehicle_speed : 0|16@1+ (0.01,0) [0|160] "km/h" TCU
+ SG_ accel_pedal : 16|8@1+ (0.4,0) [0|100] "%" TCU
+
+BO_ 2566856707 TransStatus: 8 TCU
+ SG_ current_gear : 0|8@1- (1,0) [-2|12] "" TESTER
+ SG_ target_gear : 8|8@1- (1,0) [-2|12] "" TESTER
+ SG_ shift_in_progress : 16|1@1+ (1,0) [0|1] "" TESTER
+ SG_ engine_speed : 24|16@1+ (0.125,0) [0|8000] "rpm" TESTER
+ SG_ output_shaft_speed : 40|16@1+ (0.125,0) [0|8000] "rpm" TESTER
+ SG_ alive_counter : 56|8@1+ (1,0) [0|255] "" TESTER
+
+BO_ 2566848761 EcuIdRequest: 8 TESTER
+ SG_ target : 0|8@1+ (1,0) [0|255] "" VCU,EBS,TCU
+
+BO_ 2566848807 EcuIdVcu: 8 VCU
+ SG_ fw_major : 0|8@1+ (1,0) [0|255] "" TESTER
+ SG_ fw_minor : 8|8@1+ (1,0) [0|255] "" TESTER
+ SG_ fw_patch : 16|8@1+ (1,0) [0|255] "" TESTER
+ SG_ operating_seconds : 32|32@1+ (1,0) [0|4294967295] "s" TESTER
+
+BO_ 2566848779 EcuIdBrake: 8 EBS
+ SG_ fw_major : 0|8@1+ (1,0) [0|255] "" TESTER
+ SG_ fw_minor : 8|8@1+ (1,0) [0|255] "" TESTER
+ SG_ fw_patch : 16|8@1+ (1,0) [0|255] "" TESTER
+ SG_ operating_seconds : 32|32@1+ (1,0) [0|4294967295] "s" TESTER
+
+BO_ 2566848771 EcuIdTrans: 8 TCU
+ SG_ fw_major : 0|8@1+ (1,0) [0|255] "" TESTER
+ SG_ fw_minor : 8|8@1+ (1,0) [0|255] "" TESTER
+ SG_ fw_patch : 16|8@1+ (1,0) [0|255] "" TESTER
+ SG_ operating_seconds : 32|32@1+ (1,0) [0|4294967295] "s" TESTER
+
+
+CM_ "Illustrative heavy-truck CAN FD network for the iHarmony truck lab. Not a production or OEM database.";
+CM_ BO_ 2566852647 "Driver inputs and load case, sent by the test bench to the vehicle control unit.";
+CM_ BO_ 2365530151 "Vehicle state, broadcast every 100 ms on CAN FD with an alive counter and a CRC-8 over bytes 0-14.";
+CM_ BO_ 2365526027 "Deceleration demand and road context, sent by the test bench to the brake ECU.";
+CM_ BO_ 2365530123 "Axle brake pressures and brake state, broadcast every 50 ms on CAN FD with an alive counter and CRC-8.";
+CM_ BO_ 2566856707 "Gear state, broadcast every 100 ms.";
+CM_ BO_ 2566848761 "Identification request: target = source address of the ECU (0x27 VCU, 0x0B EBS, 0x03 TCU).";
+CM_ SG_ 2365530151 drive_state "0 off, 1 standstill, 2 accelerating, 3 cruising, 4 braking, 5 speed limited";
+CM_ SG_ 2365530151 comm_fault "1 while DriverDemand is missing (timeout): accelerator demand ignored";
+CM_ SG_ 2365530123 brake_state "0 released, 1 applying, 2 holding, 3 ABS regulating";
+BA_DEF_ BO_ "VFrameFormat" ENUM "StandardCAN","ExtendedCAN","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","StandardCAN_FD","ExtendedCAN_FD";
+BA_DEF_ "BusType" STRING ;
+BA_DEF_DEF_ "VFrameFormat" "ExtendedCAN";
+BA_DEF_DEF_ "BusType" "CAN FD";
+BA_ "BusType" "CAN FD";
+BA_ "VFrameFormat" BO_ 2365530151 15;
+BA_ "VFrameFormat" BO_ 2365530123 15;

@@ -1,0 +1,48 @@
+# Reference YAML twin: an environment sensor node (serial console + MQTT telemetry).
+# Load with:  from iharmony.devices.sim.twins import environment_sensor;  twin = environment_sensor()
+twin: envsensor
+state:
+  interval_s: 10
+  unit: C
+  sensor_id: env-01
+states: [running, paused]
+initial: running
+signals:
+  temperature: {model: sine, amplitude: 2.5, period: 86400, offset: 21, noise: 0.05, round: 2}
+  humidity: {model: sine, amplitude: 8, period: 43200, offset: 45, phase: 1.57, noise: 0.2, clamp: [0, 100], round: 1}
+channels:
+  console:
+    type: serial
+    prompt: "env> "
+    banner: "BOOT envsensor id={{ state.sensor_id }}"
+    unknown: "ERR unknown command"
+    commands:
+      - match: 'read\?'
+        reply: "T={{ signals.temperature }} H={{ signals.humidity }}"
+      - match: 'id\?'
+        reply: "ID={{ state.sensor_id }}"
+      - match: 'unit (?P<u>C|F)'
+        set: {unit: "{{ u }}"}
+        reply: "UNIT={{ u }}"
+      - match: 'pause'
+        when: {state: running}
+        goto: paused
+        reply: OK
+        emit: "EVENT state=paused"
+      - match: 'resume'
+        when: {state: paused}
+        goto: running
+        reply: OK
+        emit: "EVENT state=running"
+      - match: 'pause|resume'
+        reply: "ERR already {{ fsm }}"
+  telemetry:
+    type: mqtt
+    topics:
+      - match: sensors/env-01/cmd/pause
+        goto: paused
+    publish:
+      - topic: sensors/env-01/reading
+        every: 10s
+        when: {state: running}
+        payload: '{"id": "{{ state.sensor_id }}", "t": {{ signals.temperature }}, "h": {{ signals.humidity }}}'

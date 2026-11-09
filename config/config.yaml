@@ -1,0 +1,287 @@
+framework:
+  name: "iHarmony - Enterprise Test Automation Framework"
+  tagline: "A modular, scalable, and CI/CD-ready Python + Playwright framework for enterprise automation"
+
+execution:
+  environment: "qa"
+  browser: "chromium"
+  headless: true
+  slow_mo_ms: 0
+  timeout_ms: 30000
+  navigation_timeout_ms: 45000
+  retries: 1
+  parallel_workers: 2
+  screenshot_on_failure: true
+  video_on_failure: true
+  video_dir: "reports/videos"
+  readiness_checks_enabled: false
+  readiness_timeout_seconds: 5
+  readiness_health_endpoint: "/health"
+  viewport:
+    width: 1440
+    height: 900
+
+reporting:
+  allure_results_dir: "reports/allure-results"
+  html_report_path: "reports/report.html"
+  observability_summary_path: "reports/observability/summary.json"
+  kpi_summary_path: "reports/observability/kpi_summary.json"
+  engineering_report_path: "reports/observability/engineering_report.json"
+  qa_report_path: "reports/observability/qa_functional_report.json"
+  leadership_report_path: "reports/observability/leadership_kpi_summary.json"
+
+quality:
+  automation_coverage_target: 100
+
+# Test Data Management (docs/TEST_DATA_MANAGEMENT.md). The `tdm` fixture works either way;
+# `enabled: true` additionally masks data-comparison reports and framework logs with masking_rules.
+tdm:
+  enabled: false
+  # Default schema for tdm.generate(). Types: string int float bool email name first_name
+  # last_name phone date datetime uuid city country postal_code company text, or choice:a|b|c
+  synthetic_schema:
+    user_id: int
+    username: string
+    email: email
+    active: bool
+  # Keys are field names or glob patterns (*email*). Strategies: full, partial, redact, hash,
+  # email, format, date_shift. hash/email/format/date_shift are consistent for one key, so
+  # masked values still join across tables.
+  masking_rules:
+    email:
+      strategy: partial
+      visible_prefix: 2
+      visible_suffix: 8
+    token:
+      strategy: full
+  # Environment variable holding the key for consistent masking. Unset: a random per-run key.
+  masking_key_env: IHARMONY_TDM_KEY
+  # Stores registered with tdm.register_store() are reset: none | per_test | per_session
+  reset_mode: none
+  # Provisioner names per environment; register them with iharmony.register_provisioner().
+  provisioning_by_env:
+    qa: qa-default
+    uat: uat-default
+    prod: prod-readonly
+  default_provisioner: qa-default
+
+integrations:
+  enabled: false
+  jira_export_path: "reports/integrations/jira_export.json"
+  test_management_export_path: "reports/integrations/test_management_export.json"
+  api_enabled: false
+  # Base URL the endpoints below are resolved against (required while they are
+  # relative paths), e.g. "${INTEGRATIONS_API_BASE_URL}". Absolute endpoints ignore it.
+  api_base_url: ""
+  # Extra request headers, e.g. {Authorization: "${SECRET:integrations_token}"}.
+  api_headers: {}
+  jira_api_endpoint: "/integrations/jira/results"
+  test_management_api_endpoint: "/integrations/test-management/results"
+
+plugins:
+  enabled: false
+  # Each entry resolves in order: (1) a built-in factory name below,
+  # (2) a `iharmony.plugins` entry-point name from an installed package,
+  # (3) a dotted import path "myorg.plugins.CustomPlugin".
+  # See docs/PLUGIN_AUTHORING_GUIDE.md.
+  enabled_plugins:
+    - api_plugin
+    - data_plugin
+    - security_plugin
+
+orchestration:
+  # Master switch. When false, orchestration is parsed but never enforced.
+  # Pass --iharmony-orchestration at runtime to activate enforcement.
+  enabled: false
+  suites:
+    # id: unique suite identifier used in dependency references
+    # marker: pytest marker name(s) that identify this suite's tests.
+    #         Defaults to the suite id when omitted. Comma-separated for multiple.
+    # depends_on: list of suite ids that must pass before this suite runs.
+    - id: smoke
+      marker: smoke
+      depends_on: []
+    - id: regression
+      marker: regression
+      depends_on:
+        - smoke
+  pipelines:
+    - name: default_pipeline
+      stages:
+        - name: baseline
+          suites:
+            - smoke
+        - name: full_validation
+          suites:
+            - regression
+
+database:
+  # Connection pool settings used by the db_pool / db_client fixtures.
+  # The pool is session-scoped — one pool per pytest-xdist worker.
+  # Each test checks out one connection and returns it when done.
+  # For non-parallel runs (no -n flag) min: 1, max: 5 is sufficient.
+  pool_min_connections: 2
+  pool_max_connections: 10
+  # connect_timeout applies per connection checkout attempt (seconds).
+  connect_timeout: 10
+
+resilience:
+  # Master switch. Keep false until your locators are stable; enable only when
+  # you experience genuine flakiness from dynamic DOMs or slow-rendering SPAs.
+  # Enabling this on a green suite adds overhead without benefit.
+  enabled: false
+
+  # How many times to re-evaluate the full selector list when all candidates fail.
+  # 0 = single pass (no retries). Increase to 1–2 for pages with animated loaders
+  # or deferred rendering. Each retry waits for Playwright's default timeout.
+  dom_retry_count: 0
+
+  # Global fallback selector list applied when a page does not pass its own
+  # fallback_selectors to wait_for_visible(). Prefer per-call overrides instead;
+  # global fallbacks are a last resort and can match unintended elements.
+  fallback_selectors: []
+
+  # Confidence penalty per fallback hop (0.0–1.0).
+  # Score = 1.0 - (selector_index * hop_decay) - (attempt * retry_decay)
+  # At the default 0.15, the 2nd fallback scores 0.85, the 3rd scores 0.70.
+  confidence_decay_per_hop: 0.15
+
+  # Confidence penalty per DOM retry attempt (0.0–1.0).
+  # At the default 0.1, a 2nd attempt costs an extra 0.10 off the score.
+  confidence_decay_per_retry: 0.1
+
+  # Minimum confidence score before a WARNING is logged. Tests still pass —
+  # this is a signal that your fallback chain is being leaned on heavily.
+  # Set to 0.0 to disable the warning. Recommended: 0.5
+  confidence_threshold: 0.5
+
+  # Write every recovery event (fallback used or retry triggered) to a JSONL
+  # file for post-run analysis. Keep false in CI unless actively debugging.
+  audit_enabled: false
+  audit_log_path: "reports/resilience/recovery_audit.jsonl"
+
+logging:
+  level: "INFO"
+  file: "reports/framework.log"
+  format: "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+
+# ── GAP-20: Mobile / device emulation ─────────────────────────────────────────
+# Set to a Playwright device descriptor string to emulate a mobile device.
+# e.g. "iPhone 13", "Pixel 5", "iPad Pro"
+# null (default) = standard desktop viewport from execution.viewport above.
+# Pass --iharmony-device at runtime to override.
+browser:
+  device: null
+
+# ── GAP-18: Visual regression / pixel-diff ────────────────────────────────────
+# Disabled by default. Enable to activate baseline screenshot comparison.
+# Run with --iharmony-update-snapshots once to capture baselines, then commit
+# the snapshots and remove the flag for subsequent CI runs.
+  # Device recovery (EP-09): reconnect dropped links and heal hung devices. Disabled by default.
+  devices:
+    enabled: false
+    # Reconnect with exponential backoff when a link drops mid-test; the command is repeated once.
+    reconnect: {attempts: 3, delay: 1.0, backoff: 2.0, max_delay: 30}
+    # After an infrastructure failure: try each step until the DUT passes its health probes again.
+    escalation: [reconnect, soft_reset, power_cycle]
+    power_off_time: 2.0
+    audit_log_path: "reports/resilience/recovery_audit.jsonl"
+
+visual_regression:
+  enabled: false
+  # Maximum fraction of pixels that may differ before a test fails (0.0–1.0).
+  threshold: 0.1
+  snapshot_dir: "reports/visual_snapshots"
+
+# ── GAP-19: WCAG accessibility testing ────────────────────────────────────────
+# Disabled by default. Requires: pip install iharmony[accessibility]
+# impact_filter controls which violation severities cause a test failure.
+# Valid levels: critical, serious, moderate, minor
+accessibility:
+  enabled: false
+  impact_filter:
+    - critical
+    - serious
+  # false = log violations as warnings but do not fail the test
+  fail_on_violation: true
+
+# ── GAP-24: Quality Gate Engine ───────────────────────────────────────────────
+# Disabled by default. Enable to enforce pass/warn/block policy at session end.
+# Use --iharmony-quality-gate at runtime to activate without changing config.
+# Verdicts: PASS (all thresholds met) | WARN (warn level hit) | BLOCK (exits 1)
+quality_gate:
+  enabled: false
+  report_path: "reports/quality_gate/verdict.json"
+  signals:
+    # Minimum test pass rate (%) before gate triggers.
+    pass_rate:
+      warn: 95     # warn when pass rate drops below this
+      block: 90    # block release when pass rate drops below this
+    # Maximum flaky test rate (%) allowed.
+    flaky_rate:
+      warn: 5
+      block: 10
+    # Maximum number of failed tests allowed. null = no threshold.
+    fail_count:
+      warn: null
+      block: null
+  # GAP-32: number of historical verdict runs to consider for trend analysis
+  trend_window: 5
+  # GAP-32: per-signal weights for composite risk score (0-100)
+  signal_weights:
+    pass_rate: 40
+    fail_count: 30
+    flaky_rate: 20
+    contract_health: 5
+    data_integrity: 5
+
+# ── GAP-27: Unified telemetry (OpenTelemetry) ─────────────────────────────────
+# Disabled by default. Requires: pip install iharmony[telemetry]
+# Set otlp_endpoint to your collector URL, e.g. http://localhost:4317
+telemetry:
+  enabled: false
+  otlp_endpoint: ""
+  service_name: "iharmony"
+  # Set to a port number to expose a Prometheus /metrics endpoint.
+  # Requires: pip install iharmony[prometheus]
+  prometheus_port: null
+  # Pushgateway URL (e.g. http://localhost:9091) to push metrics at session end.
+  prometheus_pushgateway: null
+  events_log: "reports/telemetry/events.jsonl"
+
+# ── GAP-26: Enterprise secrets provider + RBAC ────────────────────────────────
+# Controls how ${SECRET:key} placeholders in YAML config files are resolved
+# (alongside ${ENV_VAR}). Providers: env (default) | vault | aws | azure.
+# Each non-env provider requires its extra: pip install iharmony[vault|aws|azure]
+secrets:
+  provider: env
+  vault:                 # requires: pip install iharmony[vault]
+    vault_addr: ${VAULT_ADDR}
+    vault_token: ${VAULT_TOKEN}
+    vault_path: secret/data/iharmony
+    mount_point: secret
+  aws:                   # requires: pip install iharmony[aws]
+    aws_secret_name: iharmony/qa
+    aws_region: us-east-1
+  azure:                 # requires: pip install iharmony[azure]
+    vault_url: ${AZURE_KEY_VAULT_URL}
+
+# Role-based access control (GAP-26). When allowed_environments is non-empty,
+# runs targeting an environment outside the list are blocked. Empty = no limit.
+rbac:
+  allowed_environments: []
+
+# Governance policy (GAP-33). All fields are opt-in; defaults are inert.
+policy:
+  required_quality_gate: []
+  minimum_coverage: null
+  required_scans: []
+  run_schedule: null
+  run_as_env_var: null
+
+# ── GAP-28: Live execution dashboard ──────────────────────────────────────────
+# Disabled by default. Pass --iharmony-dashboard to start during a run.
+dashboard:
+  enabled: false
+  port: 7474
+  live_log: "reports/dashboard/live.jsonl"

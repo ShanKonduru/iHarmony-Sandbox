@@ -1,0 +1,209 @@
+# Device & embedded automation — DUTs (devices under test), benches and their simulation twins.
+# Nothing here is loaded, connected or simulated unless a test requests the `dut` / `device_factory`
+# fixtures, so projects without devices can ignore this file.
+#
+# Every DUT below has a digital twin that ships with iHarmony (iharmony.devices.sim.twins) and a
+# device object (iharmony.devices.drivers); run them in sim mode with no hardware. The DBC, register map,
+# GATT profile and YAML twin they use are in config/device_data/ - edit or replace them freely.
+# Protocol extras: pip install "iharmony[devices]" (or one, e.g. "iharmony[devices-serial]").
+#
+# Values support ${ENV_VAR} and ${SECRET:key}; they are resolved per DUT only when that DUT is used.
+# Mode:  --iharmony-dut-mode sim|emu|hil   (or IHARMONY_DUT_MODE; default below)
+# Bench: --iharmony-bench <name>           (or IHARMONY_BENCH)
+#
+# Inspect:  iharmony devices list | show <dut> | check | scenarios | report | catalog
+#           iharmony-mcp list-devices | get-device-status <dut> | check-bench-readiness
+devices:
+  default_mode: sim
+
+  duts:
+    demo-thermostat:
+      class: iharmony.devices.drivers.thermostat:SmartThermostat
+      description: Reference thermostat (tests/demo/functional/device)
+      capabilities: [serial]
+      properties: {fw: 2.1.0}
+      channels:
+        # On a real bench: the thermostat's USB-UART port. In sim mode the port is replaced by the twin's.
+        console: {type: serial, port: "${IHARMONY_DEMO_THERMOSTAT_PORT}", baudrate: 115200}
+      health:
+        - {channel: console, send: version, expect: "FW=\\S+", timeout: 5}
+      sim:
+        twin: iharmony.devices.sim.twins:ThermostatTwin
+        args: {ambient: 18.0, target: 20.0, telemetry: false}
+
+    # ── Virtual device lab ─────────────────────────────────────────────────────────────────────────────
+    # Six devices, five protocols. In sim mode every hardware field (port, base_url, host, interface) is
+    # replaced by the twin's endpoint. In hil mode set the DEVICE_LAB_* variables to the real devices (or to
+    # twins served as separate processes: iharmony devices serve --bench live-lab).
+    lab-thermostat:
+      class: iharmony.devices.drivers.thermostat:SmartThermostat
+      description: Smart thermostat (heating physics, heater relay, status LED)
+      capabilities: [serial, thermostat, climate]
+      properties: {fw: 2.1.0}
+      channels:
+        console: {type: serial, port: "${DEVICE_LAB_THERMOSTAT_PORT}", baudrate: 115200}
+      sim:
+        twin: iharmony.devices.sim.twins:ThermostatTwin
+        args: {ambient: 18.0, target: 20.0, telemetry: false}
+        boot: false   # already running when tests connect, as in the live lab: no banner racing the first reply
+
+    lab-env-sensor:
+      class: iharmony.devices.drivers.lab:EnvironmentSensor
+      description: Environment sensor node (temperature, humidity)
+      capabilities: [serial, climate, sensor]
+      channels:
+        console: {type: serial, port: "${DEVICE_LAB_ENV_SENSOR_PORT}", baudrate: 115200}
+      sim:
+        twin: device_data/environment_sensor.yaml     # a YAML twin (path relative to config/; edit freely)
+
+    lab-smart-plug:
+      class: iharmony.devices.drivers.lab:SmartPlug
+      description: Wi-Fi smart plug feeding the room heater
+      capabilities: [http, power]
+      channels:
+        api: {type: http, base_url: "${DEVICE_LAB_SMART_PLUG_URL}"}
+      sim:
+        twin: iharmony.devices.sim.twins:SmartPlugTwin
+        args: {load_w: 1500.0}
+
+    lab-energy-meter:
+      class: iharmony.devices.drivers.lab:EnergyMeter
+      description: DIN-rail energy meter with over-current protection
+      capabilities: [modbus, power, meter]
+      properties: {fw: 1.0}
+      channels:
+        modbus: {type: modbus, host: "${DEVICE_LAB_METER_HOST}", port: "${DEVICE_LAB_METER_PORT}",
+                 register_map: device_data/meter_registers.yaml}
+      sim:
+        twin: iharmony.devices.sim.twins:EnergyMeterTwin
+        args: {load_a: 5.0, limit_a: 16.0}
+
+    lab-engine-ecu:
+      class: iharmony.devices.drivers.lab:EngineEcu
+      description: Engine ECU on a CAN bus, described by a DBC file
+      capabilities: [can, automotive]
+      channels:
+        bus: {type: can, interface: pcan, channel: PCAN_USBBUS1, bitrate: 500000,
+              dbc: device_data/engine.dbc}
+      sim:
+        twin: iharmony.devices.sim.twins:EngineEcuTwin
+
+    lab-heart-rate:
+      class: iharmony.devices.drivers.lab:HeartRateMonitor
+      description: BLE heart-rate monitor (standard Bluetooth SIG services)
+      capabilities: [ble, wearable]
+      channels:
+        ble: {type: ble, name: HRM-lab, notify: [measurement], gatt_profile: device_data/heart_rate_gatt.yaml}
+      sim:
+        twin: iharmony.devices.sim.twins:HeartRateMonitorTwin
+
+    # ── Login and payment peripherals ──────────────────────────────────────────────────────────────────
+    lab-barcode-scanner:
+      class: iharmony.devices.drivers.lab:BarcodeScanner
+      description: Badge barcode scanner at the login station (USB-CDC serial)
+      capabilities: [serial, scanner, login]
+      properties: {fw: 1.4.2}
+      channels:
+        console: {type: serial, port: "${DEVICE_LAB_SCANNER_PORT}", baudrate: 9600}
+      sim:
+        twin: iharmony.devices.sim.twins:BarcodeScannerTwin
+        boot: false
+
+    lab-card-reader:
+      class: iharmony.devices.drivers.lab:CardReader
+      description: Contactless card reader (payment terminal, REST API)
+      capabilities: [http, payment]
+      properties: {fw: 3.0.1}
+      channels:
+        api: {type: http, base_url: "${DEVICE_LAB_CARD_READER_URL}"}
+      sim:
+        twin: iharmony.devices.sim.twins:CardReaderTwin
+
+    lab-fingerprint:
+      class: iharmony.devices.drivers.lab:FingerprintScanner
+      description: Fingerprint scanner module (serial), identifies enrolled users
+      capabilities: [serial, biometric, login]
+      properties: {fw: 2.3.0}
+      channels:
+        console: {type: serial, port: "${DEVICE_LAB_FINGERPRINT_PORT}", baudrate: 57600}
+      sim:
+        twin: iharmony.devices.sim.twins:FingerprintScannerTwin
+        boot: false
+
+    # ── Truck lab ─────────────────────────────────────────────────────────────────────────────────────────
+    # An illustrative heavy-truck CAN FD network: four ECU twins on 29-bit (and 11-bit) identifiers. In hil
+    # mode the bus is TRUCK_CAN_INTERFACE / TRUCK_CAN_CHANNEL: pcan + PCAN_USBBUS1 on a real rack, or
+    # udp_multicast + 239.74.163.2 for a bench process that stands in for one.
+    truck-vcu:
+      class: iharmony.devices.drivers.truck:VehicleControlUnit
+      description: Vehicle control unit - driver demand, longitudinal dynamics, road speed limiter
+      capabilities: [can, can-fd, automotive, truck, vcu]
+      properties: {fw: 3.2}
+      channels:
+        bus: {type: can, interface: "${TRUCK_CAN_INTERFACE}", channel: "${TRUCK_CAN_CHANNEL}", fd: true,
+              bitrate: 500000, data_bitrate: 2000000, dbc: device_data/truck.dbc, faults: []}
+      sim:
+        twin: iharmony.devices.sim.twins:VehicleControlUnitTwin
+
+    truck-ebs:
+      class: iharmony.devices.drivers.truck:BrakeEcu
+      description: Electronic brake system - axle pressures, ABS, brake temperature and fade warning
+      capabilities: [can, can-fd, automotive, truck, brakes]
+      properties: {fw: 2.4}
+      channels:
+        bus: {type: can, interface: "${TRUCK_CAN_INTERFACE}", channel: "${TRUCK_CAN_CHANNEL}", fd: true,
+              bitrate: 500000, data_bitrate: 2000000, dbc: device_data/truck.dbc, faults: []}
+      sim:
+        twin: iharmony.devices.sim.twins:BrakeEcuTwin
+
+    truck-tcu:
+      class: iharmony.devices.drivers.truck:TransmissionEcu
+      description: 12-speed automated transmission - shift map on engine speed and accelerator
+      capabilities: [can, automotive, truck, transmission]
+      properties: {fw: 5.0}
+      channels:
+        bus: {type: can, interface: "${TRUCK_CAN_INTERFACE}", channel: "${TRUCK_CAN_CHANNEL}", fd: true,
+              bitrate: 500000, data_bitrate: 2000000, dbc: device_data/truck.dbc, faults: []}
+      sim:
+        twin: iharmony.devices.sim.twins:TransmissionEcuTwin
+
+    truck-engine:
+      class: iharmony.devices.drivers.lab:EngineEcu
+      description: Engine ECU (11-bit identifiers, engine.dbc) on the truck network
+      capabilities: [can, automotive, truck, engine]
+      channels:
+        bus: {type: can, interface: "${TRUCK_CAN_INTERFACE}", channel: "${TRUCK_CAN_CHANNEL}", fd: true,
+              bitrate: 500000, data_bitrate: 2000000, dbc: device_data/engine.dbc,
+              faults: []}
+      sim:
+        twin: iharmony.devices.sim.twins:EngineEcuTwin
+
+  benches:
+    demo: {duts: [demo-thermostat], description: Demo bench (simulated)}
+    device-lab:
+      description: Virtual device lab - six devices over serial, HTTP, Modbus, CAN and BLE
+      duts: [lab-thermostat, lab-env-sensor, lab-smart-plug, lab-energy-meter, lab-engine-ecu, lab-heart-rate]
+    peripherals-lab:
+      description: Login and payment peripherals - badge scanner, card reader, fingerprint scanner
+      duts: [lab-barcode-scanner, lab-card-reader, lab-fingerprint]
+    truck-lab:
+      description: Illustrative heavy-truck CAN FD network - VCU, brakes, transmission, engine
+      duts: [truck-vcu, truck-ebs, truck-tcu, truck-engine]
+    live-lab:
+      description: The lab's network and serial devices, served as separate processes (hil mode)
+      duts: [lab-thermostat, lab-smart-plug, lab-energy-meter]
+
+  # Named fault sets for @pytest.mark.fault("<name>"):
+  fault_scenarios:
+    lossy-console: [{kind: drop, probability: 0.1, channel: console}, {kind: latency, delay: 0.05}]
+    congested_serial_link:
+      - {kind: latency, direction: rx, delay: 0.15, jitter: 0.05, channel: console}
+
+  # Device pool — leases, health checks, quarantine (off by default):
+  # pool: {enabled: true, backend: file, quarantine_after: 3}
+  #
+  # Per-environment overlays, deep-merged over the settings above:
+  # environments:
+  #   uat:
+  #     default_mode: hil
+  #     duts: {demo-thermostat: {channels: {console: {port: COM7}}}}

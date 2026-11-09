@@ -1,0 +1,58 @@
+# iHarmony app layer (preview): mobile and desktop apps through Appium.
+# Design: docs/app_automation/DESIGN.md · Install: pip install "iharmony[apps]"
+# Prerequisites (not installed by pip): Node.js, `npm i -g appium`, and the drivers you need:
+#   appium driver install uiautomator2      (Android)
+#   appium driver install xcuitest          (iOS, on macOS)
+#   appium driver install --source=npm appium-novawindows-driver   (Windows: UWP / WPF apps)
+#   appium driver install windows           (Windows: WinForms / Win32 apps; needs WinAppDriver)
+#   appium driver install mac2              (macOS desktop)
+apps:
+  enabled: false                    # turn on when the project has app tests
+  server:
+    url: http://127.0.0.1:4723      # an Appium server you start (`appium`), a grid, or a cloud hub
+    manage: false                   # true: each run (each xdist worker) starts `appium` on a free port and stops it;
+    command: appium                 # targets with their own `server` keep it. --ih-appium-url turns it off.
+    # args: [--allow-insecure, "uiautomator2:chromedriver_autodownload"]   # extra `appium` arguments
+    # startup_timeout: 60           # seconds to wait for /status; log: reports/apps/appium-<worker>.log
+  defaults:
+    timeout: 15                     # explicit-wait seconds for elements
+    reset_strategy: per_test        # per_test | per_session | none
+    screenshot_on_failure: true
+    page_source_on_failure: true
+    device_log_on_failure: true     # logcat.txt (Android) / syslog.txt (iOS): the last device_log_lines lines
+    device_log_lines: 2000
+    record_on_failure: false        # true: record every test's screen, keep video.mp4 for failed tests only
+    record_options: {}              # passed to the driver, e.g. {timeLimit: 600, videoQuality: medium}
+  apps:
+    api-demos:                      # Appium's sample app (native + WebView screens)
+      platform: android
+      package: io.appium.android.apis
+      activity: .ApiDemos
+      binary: "${API_DEMOS_APK}"    # path or URL of ApiDemos-debug.apk; unset = already installed
+    saucedemo-mweb:                 # the framework's web demo in real Chrome on the device
+      platform: android
+      browser: chrome
+      url: https://www.saucedemo.com  # start page (open_url); per-environment overrides go in environments
+    calculator:                     # Windows Calculator (UWP app id)
+      platform: windows
+      app_id: Microsoft.WindowsCalculator_8wekyb3d8bbwe!App
+  targets:
+    android-emulator:
+      platform: android
+      kind: emulator
+      avd: "${ANDROID_AVD}"         # AVD name to boot; unset = use the running emulator
+      tags: [phone]
+    windows-local:                  # NovaWindows: UWP / WPF apps (they describe their own controls)
+      platform: windows
+      kind: desktop
+    windows-uia3:                   # Appium "Windows" driver (WinAppDriver, native UI Automation):
+      platform: windows             # WinForms / classic Win32 apps, whose control ids and types
+      kind: desktop                 # NovaWindows cannot see (design §15). Needs WinAppDriver installed
+      automation_name: Windows      # and Windows Developer Mode on (scripts/setup_appium_lab).
+  pool:                             # parallel runs (pytest -n 2 --ih-target phone,tablet): each worker leases a
+    enabled: false                  # free target, so two workers never drive one device (`filelock`
+    when_busy: wait                 # comes with the apps extra); wait | skip | fail, per test:
+    quarantine_after: 3             # requires_target(when_busy=...). Targets that reach one device two ways
+                                    # share it with `lease: <name>`
+  environments: {}                  # per-environment overlays, e.g. qa: {apps: {api-demos: {binary: ...}}}
+  capabilities: {}                  # merged into every session

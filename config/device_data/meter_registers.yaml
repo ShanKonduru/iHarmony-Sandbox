@@ -1,0 +1,10 @@
+# Modbus register map of the lab's energy meter (lab-energy-meter). Holding registers are writable.
+device_id: 1
+registers:
+  voltage:   {table: input,    address: 0,   type: float32, unit: V}
+  current:   {table: input,    address: 2,   type: float32, unit: A}
+  power:     {table: input,    address: 4,   type: float32, unit: W}
+  energy:    {table: input,    address: 6,   type: uint32, scale: 0.01, unit: kWh}
+  limit_a:   {table: holding,  address: 100, type: uint16, scale: 0.1, unit: A}    # over-current trip threshold
+  contactor: {table: coil,     address: 0}                                        # closed = load connected
+  tripped:   {table: discrete, address: 0}                                        # latched after an over-current trip

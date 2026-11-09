@@ -1,0 +1,7 @@
+{
+  "report_type": "leadership_kpi",
+  "execution_success_rate": 100.0,
+  "execution_failure_rate": 0.0,
+  "flaky_test_rate": 0.0,
+  "automation_coverage_percent": 100.0
+}

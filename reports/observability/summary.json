@@ -1,0 +1,11 @@
+{
+  "total": 2,
+  "passed": 2,
+  "failed": 0,
+  "skipped": 0,
+  "pass_rate": 100.0,
+  "total_duration_seconds": 4.0919,
+  "average_duration_seconds": 2.0459,
+  "flaky_tests": [],
+  "flaky_test_count": 0
+}

@@ -1,0 +1,30 @@
+VERSION "iharmony-engine-1"
+
+
+NS_ :
+
+BS_:
+
+BU_: ECU TESTER
+
+
+BO_ 256 EngineData: 8 ECU
+ SG_ rpm : 0|16@1+ (1,0) [0|8000] "rpm" TESTER
+ SG_ coolant_temp : 16|8@1+ (1,-40) [-40|215] "degC" TESTER
+ SG_ throttle : 24|8@1+ (0.5,0) [0|100] "%" TESTER
+ SG_ running : 32|1@1+ (1,0) [0|1] "" TESTER
+
+BO_ 512 EngineCommand: 2 TESTER
+ SG_ target_rpm : 0|16@1+ (1,0) [0|8000] "rpm" ECU
+
+BO_ 768 InfoRequest: 1 TESTER
+ SG_ item : 0|8@1+ (1,0) [0|255] "" ECU
+
+BO_ 769 InfoResponse: 4 ECU
+ SG_ item : 0|8@1+ (1,0) [0|255] "" TESTER
+ SG_ value : 8|24@1+ (1,0) [0|16777215] "" TESTER
+
+
+CM_ BO_ 256 "Engine state, broadcast every 100 ms while running.";
+CM_ BO_ 512 "Set the engine speed the ECU regulates to.";
+CM_ BO_ 768 "Ask for one information item: 1 = firmware version (major*10000 + minor*100 + patch), 2 = operating seconds.";

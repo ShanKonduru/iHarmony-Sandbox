@@ -1,0 +1,7 @@
+{
+  "execution_success_rate": 100.0,
+  "execution_failure_rate": 0.0,
+  "flaky_test_rate": 0.0,
+  "mean_test_duration_seconds": 2.0459,
+  "automation_coverage_percent": 100.0
+}
